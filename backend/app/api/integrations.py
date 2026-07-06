@@ -83,6 +83,33 @@ async def oauth_callback(
     return RedirectResponse(f"{settings.cors_origins[0]}/settings?connected={provider}")
 
 
+# ── API-key connections (Notion, Linear, etc.) ───────────────────────────────
+
+class ApiKeyConnectionRequest(BaseModel):
+    provider: str   # e.g. "notion", "linear"
+    api_key: str
+    display_name: str | None = None
+
+
+@router.post("/connect-key", response_model=ConnectionOut, status_code=201)
+async def connect_api_key(
+    body: ApiKeyConnectionRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Store an API-key-based connection (Notion integration token, Linear API key, etc.)."""
+    vault = CredentialVault(session)
+    label = body.display_name or f"{body.provider.title()} (API key)"
+    conn = await vault.store(
+        user_id=user.id,
+        provider=body.provider,
+        display_name=label,
+        credentials={"api_key": body.api_key},
+        metadata={"method": "api_key"},
+    )
+    return conn
+
+
 # ── Webhook trigger ───────────────────────────────────────────────────────────
 
 class WebhookResponse(BaseModel):
