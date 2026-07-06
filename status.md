@@ -204,15 +204,45 @@ Nexus/
 | 2026-07-07 | Phase 6: CLAUDE.md — step-by-step guide for adding a new node type | ✅ |
 | 2026-07-07 | Phase 6: README.md — Mermaid architecture diagram + deploy guide + node table | ✅ |
 
-### Next steps (Phase 7 → Production hardening, if needed)
+### Phase 7 complete ✅ — Live infrastructure + 4 new integrations (2026-07-07)
+
+| 2026-07-07 | Live infra: Neon Postgres (pooler, SSL via `_make_engine()` in `core/db.py`), Upstash Redis (rediss://) | ✅ |
+| 2026-07-07 | asyncpg SSL fix: strip `sslmode`/`channel_binding` from URL, pass `ssl` via connect_args (also used by alembic/env.py) | ✅ |
+| 2026-07-07 | AI switched to Gemini via LiteLLM — model `gemini/gemini-2.5-flash` (1.5-flash is retired → 404) | ✅ |
+| 2026-07-07 | System Gemini key fallback in `/api/ai/generate-workflow`; user key optional in command palette | ✅ |
+| 2026-07-07 | OAuth live: Google + GitHub apps registered, connect flow tested end-to-end | ✅ |
+| 2026-07-07 | 6 new nodes: discord.send_message, slack.send_message, notion.search, notion.create_page, linear.create_issue, linear.list_issues (16 total) | ✅ |
+| 2026-07-07 | `POST /api/integrations/connect-key` — API-key connections (Notion/Linear) stored in vault | ✅ |
+| 2026-07-07 | Settings page rewrite: 6 providers (OAuth / apikey / webhook badges + modal with per-provider help) | ✅ |
+| 2026-07-07 | Bug fix: `refresh()` after `flush()` in WorkflowService (500 on PATCH — server-generated `updated_at`) | ✅ |
+| 2026-07-07 | Bug fix: BuilderPage run-before-save used stale state → 422 on `workflows/null/trigger` | ✅ |
+| 2026-07-07 | Bug fix: worker `__main__` block added (`python -m app.workers.main` did nothing) | ✅ |
+| 2026-07-07 | Bug fix: worker imports all ORM models at startup (mapper `'User' failed to locate` on first job) | ✅ |
+| 2026-07-07 | Bug fix: worker commits session on executor failure (failed runs stayed "pending" forever) | ✅ |
+| 2026-07-07 | Verified end-to-end: create workflow → trigger → worker executes → templates resolve → run "succeeded" with per-step history | ✅ |
+| 2026-07-07 | Verified: AI generation endpoint returns valid DAG via Gemini; 16/16 tests passing | ✅ |
+
+### How to run locally (current, no Docker needed)
+```bash
+cd backend
+uvicorn app.main:app --reload            # API on :8000 (needs .env)
+python -m app.workers.main               # worker (separate terminal — REQUIRED for runs to execute)
+cd frontend && npm run dev               # UI on :5173
+```
+DB/Redis are cloud (Neon/Upstash) — credentials in `backend/.env` (gitignored).
+
+### Next steps (Phase 8 → Production hardening)
 - Wire `alembic upgrade head` into Dockerfile CMD or Railway predeploy hook
-- Real Firebase token verification (replace dev bypass for production env)
+- Wire Firebase Auth in frontend SDK; turn off `AUTH_DEV_BYPASS` (backend verification already implemented, project `nexus-4a08c` ready)
 - Rate limiting middleware (slowapi — already in pyproject.toml, not yet wired)
 - Scheduling/cron support (trigger_type="schedule" column exists; beat process needed)
-- More integrations: Discord webhook, Slack, Notion
 - Parallel node execution in Executor (data model already supports it)
+- Deploy: Vercel (frontend) + Railway (api+worker)
 
 ### Notes / gotchas for future sessions
 - Local Python is 3.13 (pyproject targets 3.12 for Docker — fine).
 - `core/errors.py` keeps FastAPI import lazy so the engine stays importable without web deps (domain/framework separation).
 - Users bring own AI keys in MVP; metering hook lives in `AIService.generate` (TODO).
+- Gemini model names retire: 1.5-flash is gone; current default is `gemini/gemini-2.5-flash` (in ai/service.py, ai/generator.py, ai_node.py).
+- The worker MUST be running or triggered runs sit in "pending" — arq jobs queue in Upstash Redis.
+- Dev auth header is `X-Dev-User-Id: dev-user-001` on every API call (frontend hardcodes it).

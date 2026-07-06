@@ -57,7 +57,7 @@ class LinearCreateIssueNode(Node):
         import httpx
 
         config = ctx.resolve(config)
-        creds = await ctx.services.vault.get_credentials(config["connection_id"])
+        creds = await ctx.services.get_credentials(config["connection_id"])
         token = creds["api_key"]
 
         mutation = """
@@ -144,7 +144,7 @@ class LinearListIssuesNode(Node):
         import httpx
 
         config = ctx.resolve(config)
-        creds = await ctx.services.vault.get_credentials(config["connection_id"])
+        creds = await ctx.services.get_credentials(config["connection_id"])
         token = creds["api_key"]
 
         limit = int(config.get("max_results", 20))

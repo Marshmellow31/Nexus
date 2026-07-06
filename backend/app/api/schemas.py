@@ -49,6 +49,9 @@ class WorkflowOut(BaseModel):
     trigger_type: str
     definition: dict[str, Any]
     version: int
+    # Only set for trigger_type="webhook"; the owner needs it to build the
+    # trigger URL: POST /api/integrations/webhooks/{id}/{secret}
+    webhook_secret: str | None = None
     created_at: datetime
     updated_at: datetime
 

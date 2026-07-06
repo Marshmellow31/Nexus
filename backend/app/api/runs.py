@@ -111,6 +111,9 @@ async def stream_run_status(
                 if await request.is_disconnected():
                     break
                 try:
+                    # Expire identity-map state — the worker updates the row from
+                    # another process, and a cached Run would report "pending" forever.
+                    session.expire_all()
                     run = await svc.get(run_id, user.id)
                     data = {
                         "run_id": str(run.id),

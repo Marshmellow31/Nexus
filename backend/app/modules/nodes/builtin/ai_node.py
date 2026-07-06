@@ -30,8 +30,8 @@ class AIGenerateNode(Node):
                 "model": {
                     "type": "string",
                     "title": "Model",
-                    "default": "gpt-4o-mini",
-                    "enum": ["gpt-4o-mini", "gpt-4o", "gemini/gemini-1.5-flash"],
+                    "default": "gemini/gemini-2.5-flash",
+                    "enum": ["gemini/gemini-2.5-flash", "gpt-4o-mini", "gpt-4o"],
                 },
                 "temperature": {
                     "type": "number",
@@ -52,12 +52,22 @@ class AIGenerateNode(Node):
     async def execute(
         self, ctx: ExecutionContext, config: dict[str, Any]
     ) -> dict[str, Any]:
+        from app.core.config import settings
+
+        model = config.get("model", "gemini/gemini-2.5-flash")
+        # System Gemini key fallback — settings doesn't export to os.environ,
+        # so litellm can't discover it on its own.
+        api_key = None
+        if model.startswith("gemini") and settings.gemini_api_key:
+            api_key = settings.gemini_api_key
+
         resp = await ctx.services.ai.generate(
             AIRequest(
                 prompt=config["prompt"],
                 system=config.get("system"),
-                model=config.get("model", "gpt-4o-mini"),
+                model=model,
                 temperature=float(config.get("temperature", 0.4)),
+                api_key=api_key,
             )
         )
         return {"text": resp.text, "model": resp.model, "usage": resp.usage}

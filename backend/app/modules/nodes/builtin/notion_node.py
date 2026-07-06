@@ -44,7 +44,7 @@ class NotionSearchNode(Node):
         import httpx
 
         config = ctx.resolve(config)
-        creds = await ctx.services.vault.get_credentials(config["connection_id"])
+        creds = await ctx.services.get_credentials(config["connection_id"])
         token = creds["api_key"]
 
         headers = {
@@ -125,7 +125,7 @@ class NotionCreatePageNode(Node):
         import httpx
 
         config = ctx.resolve(config)
-        creds = await ctx.services.vault.get_credentials(config["connection_id"])
+        creds = await ctx.services.get_credentials(config["connection_id"])
         token = creds["api_key"]
 
         headers = {

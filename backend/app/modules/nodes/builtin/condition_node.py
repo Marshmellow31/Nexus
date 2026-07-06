@@ -8,9 +8,20 @@ from typing import Any
 from app.modules.nodes.base import ExecutionContext, Node, NodeSpec
 from app.modules.nodes.registry import registry
 
+def _loose_eq(a: Any, b: Any) -> bool:
+    """Config values are always strings, but templates resolve to native types —
+    compare numerically when both sides parse as numbers, else as strings."""
+    if a == b:
+        return True
+    na, nb = _num(a), _num(b)
+    if na == na and nb == nb:  # neither is NaN
+        return na == nb
+    return str(a) == str(b)
+
+
 _OPS = {
-    "eq": lambda a, b: a == b,
-    "ne": lambda a, b: a != b,
+    "eq": _loose_eq,
+    "ne": lambda a, b: not _loose_eq(a, b),
     "gt": lambda a, b: _num(a) > _num(b),
     "gte": lambda a, b: _num(a) >= _num(b),
     "lt": lambda a, b: _num(a) < _num(b),

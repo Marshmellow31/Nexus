@@ -16,6 +16,12 @@ from app.modules.nodes import register_builtin_nodes
 
 
 async def startup(ctx: dict[str, Any]) -> None:
+    # Import all ORM models so relationship strings ("User", "Workflow", …) resolve.
+    from app.modules.auth import models as _auth_models  # noqa: F401
+    from app.modules.integrations import models as _integration_models  # noqa: F401
+    from app.modules.runs import models as _run_models  # noqa: F401
+    from app.modules.workflows import models as _workflow_models  # noqa: F401
+
     register_builtin_nodes()
     import httpx
 
@@ -64,12 +70,17 @@ async def execute_workflow(ctx: dict[str, Any], run_id: str) -> dict[str, Any]:
         )
 
         executor = Executor(registry, store, services)
-        outputs = await executor.run(
-            run_id=run_id,
-            user_id=str(run.user_id),
-            graph=graph,
-            trigger_payload=run.trigger_payload or {},
-        )
+        try:
+            outputs = await executor.run(
+                run_id=run_id,
+                user_id=str(run.user_id),
+                graph=graph,
+                trigger_payload=run.trigger_payload or {},
+            )
+        except Exception as exc:
+            # Executor already marked the run/step failed — persist that status.
+            await session.commit()
+            return {"run_id": run_id, "status": "failed", "error": str(exc)}
         await session.commit()
         return {"run_id": run_id, "status": "succeeded", "steps": len(outputs)}
 
@@ -81,3 +92,9 @@ class WorkerSettings:
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
     max_jobs = 10
     job_timeout = settings.run_max_seconds + 30
+
+
+if __name__ == "__main__":
+    from arq import run_worker
+
+    run_worker(WorkerSettings)

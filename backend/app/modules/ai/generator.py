@@ -68,7 +68,7 @@ class WorkflowGenerator:
         request = AIRequest(
             prompt=f"Generate a Nexus workflow for this goal:\n\n{description}",
             system=system,
-            model="gemini/gemini-1.5-flash",
+            model="gemini/gemini-2.5-flash",
             temperature=0.3,
             max_tokens=2048,
             json_schema={"type": "object"},  # force JSON mode

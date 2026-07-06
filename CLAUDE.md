@@ -79,7 +79,7 @@ That's it. The node now:
 | `NodeSpec.config_schema` | JSON Schema — drives frontend form AND AI generation AND validation |
 | `NodeSpec.output_schema` | Documents what `execute()` returns — drives template autocompletion |
 | `ctx.resolve(config)` | Call this in `execute()` to expand `{{ nodes.x.output.y }}` templates |
-| `ctx.services.vault` | `CredentialVault` — call `.get_credentials(connection_id)` to get decrypted OAuth tokens |
+|  `ctx.services.get_credentials` | async callable — `await ctx.services.get_credentials(connection_id)` returns the decrypted credentials dict |
 | `assert_url_is_safe(url)` | SSRF guard — required for any node that makes outbound HTTP |
 
 ### Nodes that need OAuth credentials
@@ -87,7 +87,7 @@ That's it. The node now:
 Set `requires_connection=True` in `NodeSpec`. Users wire up the connection in Settings → Connections. In `execute()`:
 
 ```python
-creds = await ctx.services.vault.get_credentials(config["connection_id"])
+creds = await ctx.services.get_credentials(config["connection_id"])
 token = creds["access_token"]
 ```
 

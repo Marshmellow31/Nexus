@@ -18,7 +18,7 @@ from typing import Any, Protocol
 class AIRequest:
     prompt: str
     system: str | None = None
-    model: str = "gemini/gemini-1.5-flash"
+    model: str = "gemini/gemini-2.5-flash"
     temperature: float = 0.4
     max_tokens: int = 1024
     # When set, the model is forced to return JSON validating against this schema.
@@ -63,7 +63,14 @@ class LiteLLMProvider:
         resp = await litellm.acompletion(**kwargs)
         text = resp["choices"][0]["message"]["content"] or ""
         data = _safe_json(text) if req.json_schema is not None else None
-        usage = dict(resp.get("usage", {}) or {})
+        # Keep only plain-int token counts — litellm's usage object nests
+        # non-JSON-serializable wrapper types that would break run checkpointing.
+        raw_usage = resp.get("usage", {}) or {}
+        usage = {
+            k: v
+            for k, v in dict(raw_usage).items()
+            if isinstance(v, int)
+        }
         return AIResponse(text=text, data=data, model=req.model, usage=usage)
 
 
